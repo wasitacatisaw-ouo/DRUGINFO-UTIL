@@ -7,25 +7,34 @@ import subprocess
 
 download_dir = r"C:/Users/hwfrz/Downloads"
 
-# 병용금기 고시 파일 download.zip 압축 해제
+# 병용금기 고시 파일 및 추가 zip 파일 압축 해제
+seven_zip = r"C:/Program Files/7-Zip/7z.exe" # 7zip으로 해제해야 인코딩 문제 없음
+# download.zip 해제
 zip_path = os.path.join(download_dir, "download.zip")
-
 if os.path.exists(zip_path):
-    seven_zip = r"C:/Program Files/7-Zip/7z.exe" # 7zip으로 해제해야 인코딩 문제 없음
     cmd = [seven_zip, 'x', '-y', f'-o{download_dir}', zip_path]
     subprocess.run(cmd, check=True)
     print(f"압축 해제 완료(7z): {zip_path} → {download_dir}")
-    # 압축 해제 후 압축파일 삭제
     if os.path.exists(zip_path):
         os.remove(zip_path)
+# 게시_병용금기 급여/비급여 품목리스트_*.zip 해제
+import glob
+for zip_file in glob.glob(os.path.join(download_dir, "게시_병용금기*품목리스트_*.zip")):
+    cmd = [seven_zip, 'x', '-y', f'-o{download_dir}', zip_file]
+    subprocess.run(cmd, check=True)
+    print(f"압축 해제 완료(7z): {zip_file} → {download_dir}")
+    if os.path.exists(zip_file):
+        os.remove(zip_file)
 
 drug_contra_pay_pattern = re.compile(r"게시_병용금기 급여 품목리스트_\d{4}\.xlsb$")
 drug_contra_nonpay_pattern = re.compile(r"게시_병용금기 비급여 품목리스트_\d{4}\.xlsx$")
+
 files = [
     os.path.join(download_dir, f)
     for f in os.listdir(download_dir)
     if drug_contra_pay_pattern.match(f) or drug_contra_nonpay_pattern.match(f)
 ]
+
 if not files:
     raise Exception("해당 패턴의 파일이 없습니다.")
 
@@ -59,13 +68,16 @@ if not all_dfs:
 
 # 모든 데이터 병합
 merged_df = pd.concat(all_dfs, ignore_index=True)
+
 # 컬럼명 공백 제거 후 pay_a, pay_b 컬럼만 최종적으로 drop
 merged_df.columns = merged_df.columns.str.strip()
 merged_df = merged_df.drop(columns=[col for col in ["pay_a", "pay_b"] if col in merged_df.columns], errors='ignore')
 
 output_path = os.path.join(download_dir, "(예제파일)작업용_병용금기_급여_품목리스트.xlsx")
+
 if os.path.exists(output_path):
     os.remove(output_path)
+    
 with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
     merged_df.to_excel(writer, sheet_name="drug_contra_product_temp", index=False)
 print(f"저장 완료: {output_path}")

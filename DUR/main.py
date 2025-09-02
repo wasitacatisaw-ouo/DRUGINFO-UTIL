@@ -8,8 +8,19 @@ today = datetime.date.today()
 is_first_day = today.day == 1
 is_first_monday = today.weekday() == 0 and 1 <= today.day <= 7
 
+
+# dur_crawler.py로 다운로드
 if is_first_day or is_first_monday or 1==1:
     subprocess.run([sys.executable, "dur_crawler.py"])
+    # 다운로드 후 각 엑셀 변환 파이썬 파일 실행
+    for script in [
+        "age_contra_product_update.py",
+        "drug_contra_product_update.py",
+        "preg_contra_product_update.py",
+        "nonpay_product.py"
+    ]:
+        print(f"실행: {script}")
+        subprocess.run([sys.executable, script])
 
 
 # 매월 15일 또는 15일 이후 첫 번째 워킹데이 비용효과적 함량 고시 다운로드

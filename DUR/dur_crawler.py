@@ -3,14 +3,31 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 import time
 import os
+import re
+import glob
 
+def wait_for_download(download_dir, pattern, timeout=120):
+    import time
+    start = time.time()
+    while time.time() - start < timeout:
+        files = glob.glob(os.path.join(download_dir, pattern))
+        if files:
+            return files[0]
+        time.sleep(3)
+    raise Exception("다운로드 파일이 지정 시간 내에 생성되지 않았습니다.")
 
-# chromedriver.exe 경로 (실제 위치로 수정하세요)
+# chromedriver.exe 경로
 chrome_driver_path = r"d:/python/WORK/DUR/chromedriver-win64/chromedriver.exe"
+# 다운로드 경로
+download_dir = r"C:/Users/hwfrz/Downloads"
 
-# 다운로드 받을 폴더 지정
-# download_dir = r"d:/python/WORK/DUR/downloads"
-# os.makedirs(download_dir, exist_ok=True)
+
+# glob 패턴 문자열로 정의
+nonpay_pattern = "*_DUR점검대상 비급여의약품 품목리스트*.xlsx"
+preg_contra_pattern = "게시_임부금기_품목리스트_*.xlsx"
+age_contra_pattern = "게시_연령금기_품목리스트_*.xlsx"
+drug_contra_pattern = "download.zip"
+
 
 chrome_options = webdriver.ChromeOptions()
 # chrome_options.add_experimental_option("prefs", {
@@ -23,7 +40,7 @@ service = Service(executable_path=chrome_driver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # 사이트 접속
-driver.get("https://biz.hira.or.kr/index.do?sso=ok")
+driver.get("https://biz.hira.or.kr")
 time.sleep(5)
     
 try:        
@@ -47,7 +64,7 @@ try:
     time.sleep(2)
     dur_list_div = driver.find_element(By.XPATH, "//div[contains(text(), 'DUR 대상 의약품')]")
     dur_list_div.click()
-    time.sleep(4)
+    time.sleep(10)
 
     # 연령금기
     latest_age_dur = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000314_form_divWork_grdList_body_gridrow_0_cell_0_1")
@@ -59,26 +76,26 @@ try:
     time.sleep(2)
     download_btn = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000314_form_divWork_Div00_btnDownFileTextBoxElement")
     download_btn.click()   
-    time.sleep(5)  # 다운로드 완료까지 대기
+    downloaded_file = wait_for_download(download_dir, age_contra_pattern)
     
     # 목록 버튼 클릭
     drugage_list_button_div = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000314_form_divWork_btnListTextBoxElement")
     drugage_list_button_div.click()
-    time.sleep(3)
+    time.sleep(4)
     # alert = driver.switch_to.alert
     # alert.accept() # 확인
         
     # 병용금기
     latest_drug_dur = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000314_form_divWork_grdList_body_gridrow_1_cell_1_0")
     latest_drug_dur.click()
-    time.sleep(2)
+    time.sleep(3)
     # 첨부파일 다운로드 버튼 클릭
     attach_btn = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000314_form_divWork_Div00_grd_list_head_gridrow_-1_cell_-1_0_controlcheckbox")
     attach_btn.click()
     time.sleep(2)
     download_btn = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000314_form_divWork_Div00_btnDownFileTextBoxElement")
     download_btn.click()   
-    time.sleep(5)  # 다운로드 완료까지 대기
+    downloaded_file = wait_for_download(download_dir, drug_contra_pattern)
 
     # 임부금기
     # 임부금기 리스트 조회
@@ -89,14 +106,14 @@ try:
     # 최신 임부금기 고시
     latest_preg_dur = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000315_form_divWork_grdList_body_gridrow_0_cell_0_1")
     latest_preg_dur.click()
-    time.sleep(2)
+    time.sleep(3)
     # 첨부파일 다운로드 버튼 클릭
     attach_btn = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000315_form_divWork_Div00_grd_list_head_gridrow_-1_cell_-1_0_controlcheckbox")
     attach_btn.click()
     time.sleep(2)
     download_btn = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000315_form_divWork_Div00_btnDownFileTextBoxElement")
     download_btn.click()
-    time.sleep(5)  # 다운로드 완료까지 대기
+    downloaded_file = wait_for_download(download_dir, preg_contra_pattern)
     
     # 비급여
     # 비급여 리스트 조회
@@ -107,14 +124,17 @@ try:
     # 최신 비급여 고시
     latest_nonpay_dur = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000319_form_divWork_grdList_body_gridrow_0_cell_0_1")
     latest_nonpay_dur.click()
-    time.sleep(2)
+    time.sleep(3)
     # 첨부파일 다운로드 버튼 클릭
     attach_btn = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000319_form_divWork_Div00_grd_list_head_gridrow_-1_cell_-1_0_controlcheckbox")
     attach_btn.click()
     time.sleep(2)
     download_btn = driver.find_element(By.ID, "MainFrame_VFrameSet0_HFrameSet0_VFrameSet1_WorkFrame_MP00000319_form_divWork_Div00_btnDownFileTextBoxElement")
     download_btn.click()
-    time.sleep(5)  # 다운로드 완료까지 대기
-
+    downloaded_file = wait_for_download(download_dir, nonpay_pattern)
+    time.sleep(10)
+    
 except Exception as e:
     print("Error occurred:", e)
+
+print("DUR 크롤러 작업이 완료되었습니다.")
